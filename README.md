@@ -15,11 +15,11 @@ using UltraOn.ZeroInput
 ###### Make a Enum (It can be called anything, but I think Command is best.)
 ```cs
 public enum Command{
-		MoveX,
-		MoveY,
-		Jump,
-		Reset,
-	}
+	MoveX,
+	MoveY,
+	Jump,
+	Reset,
+}
 ```
 
 ###### Then make a ZeroInput object for your MonoBehaviour.
