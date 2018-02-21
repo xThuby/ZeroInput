@@ -35,16 +35,16 @@ zInput = new ZeroInput(); //Don't forget to initalize your zInput object.
 ###### Setup your commands in the Start() function of your MonoBehaviour.
 ```cs
 //Make it so we have to press "A" When we want our player to jump.
-		zInput.AddButton((int) Command.Jump, ZeroInput.Buttons.Face.A);
+zInput.AddButton((int) Command.Jump, ZeroInput.Buttons.Face.A);
 		
-		//Make it so when we want to reset our player we press our right stick up.
-		zInput.AddAxis((int) Command.Reset, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button,  ZeroInput.ActivateOn.Positive);
+//Make it so when we want to reset our player we press our right stick up.
+zInput.AddAxis((int) Command.Reset, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button,  ZeroInput.ActivateOn.Positive);
 		
-		//Make it so when we want to move our player on the X axis we move our left stick left or right.
-		zInput.AddAxis((int) Command.MoveX, ZeroInput.Sticks.LeftStick.X, 0.5f, ZeroInput.ActAs.Axis);
+//Make it so when we want to move our player on the X axis we move our left stick left or right.
+zInput.AddAxis((int) Command.MoveX, ZeroInput.Sticks.LeftStick.X, 0.5f, ZeroInput.ActAs.Axis);
 		
-		//Make it so when we want to move our player on the Z axis we move our left stick up or down.
-		zInput.AddAxis((int) Command.MoveY, ZeroInput.Sticks.LeftStick.Y, 0.5f, ZeroInput.ActAs.Axis);
+//Make it so when we want to move our player on the Z axis we move our left stick up or down.
+zInput.AddAxis((int) Command.MoveY, ZeroInput.Sticks.LeftStick.Y, 0.5f, ZeroInput.ActAs.Axis);
 ```
 
 ###### Tell ZeroInput you are done setting it up in the Start() function of your MonoBehaviour.
