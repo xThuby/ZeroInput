@@ -77,7 +77,10 @@ Vector3 move = new Vector3(zInput.Find((int) Command.MoveX).axis.value,0, zInput
 if(zInput.Find((int) Command.Jump).justPressed)
 ```
 #### Todo on ZeroInput
+
 1)Need to figure out if Triggers ar being read correctly as buttons, or if they're axis in XInput.
+
+
 2)If they're buttons: Modify ZeroInput accordingly.
 
 #### Todo on Git
