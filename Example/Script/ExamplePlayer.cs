@@ -35,6 +35,9 @@ public class ExamplePlayer : MonoBehaviour {
 		//Make it so we have to press "A" When we want our player to jump.
 		zInput.AddButton((int) Command.Jump, ZeroInput.Buttons.Face.A);
 		
+		//Make it so we have to press "Right Trigger" When we want our player to reset.
+		zInput.AddButton((int) Command.Reset, ZeroInput.Buttons.Trigger.Right);
+		
 		//Make it so when we want to reset our player we press our right stick up.
 		zInput.AddAxis((int) Command.Reset, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button, ZeroInput.ActivateOn.Positive);
 		
