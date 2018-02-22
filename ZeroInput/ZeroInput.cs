@@ -1,6 +1,6 @@
 //This code was created by William Starkovich
 //This code uses the MIT License.
-//This code is version 0.9
+//This code is version 0.95
 
 using System;
 using System.Collections;
@@ -217,6 +217,12 @@ namespace UltraOn.ZeroInput{
 				public static XState LeftClick = new XState(Compartment.Click, 0);
 				public static XState RightClick = new XState(Compartment.Click, 1);
 			}
+			
+						
+			public static class Trigger{
+				public static XState Left = new XState(Compartment.Triggers, 0);
+				public static XState Right =  new XState(Compartment.Triggers, 1);
+			}
 		}
 		
 		public static class Sticks{
@@ -228,11 +234,6 @@ namespace UltraOn.ZeroInput{
 			public static class RightStick{
 				public static XAxisState X = new XAxisState(Compartment.RightStick, 0, ZeroInput.recommendedDeadZone);
 				public static XAxisState Y = new XAxisState(Compartment.RightStick, 1, ZeroInput.recommendedDeadZone);
-			}
-			
-			public static class Trigger{
-				public static XAxisState Left = new XAxisState(Compartment.Triggers, 0, ZeroInput.recommendedDeadZone);
-				public static XAxisState Right = new XAxisState(Compartment.Triggers, 1, ZeroInput.recommendedDeadZone);
 			}
 		}
 		
@@ -259,10 +260,10 @@ namespace UltraOn.ZeroInput{
 			public bool[] dpad;
 			public bool[] center;
 			public bool[] click;
+			public bool[] trigger;
 	
 			public float[] ls;
 			public float[] rs;
-			public float[] trigger;
 		}
 		
 		//--------------------
@@ -468,11 +469,11 @@ namespace UltraOn.ZeroInput{
 			zs.dpad = new bool[4];
 			zs.center = new bool[3];
 			zs.click = new bool[2];
+			zs.trigger = new bool[2];
 			
 			//axis
 			zs.ls = new float[2];
 			zs.rs = new float[2];
-			zs.trigger = new float[2];
 			
 			//There has got to be a better way..
 			zs.face[0]  = (state.Buttons.A == ButtonState.Pressed);
@@ -494,14 +495,14 @@ namespace UltraOn.ZeroInput{
 			zs.center[1]  = (state.Buttons.Start == ButtonState.Pressed);
 			zs.center[2]  = (state.Buttons.Guide == ButtonState.Pressed);
 			
+			zs.trigger[0] = (state.Triggers.Left >= recommendedDeadZone);
+			zs.trigger[1] = (state.Triggers.Right >= recommendedDeadZone);
+			
 			zs.ls[0] = (Mathf.Abs(state.ThumbSticks.Left.X) > deadZones.LeftStick.X) ? state.ThumbSticks.Left.X : 0.0f;
 			zs.ls[1] = (Mathf.Abs(state.ThumbSticks.Left.Y) > deadZones.LeftStick.Y) ? state.ThumbSticks.Left.Y : 0.0f;
 			
 			zs.rs[0] = (Mathf.Abs(state.ThumbSticks.Right.X) > deadZones.RightStick.X) ? state.ThumbSticks.Right.X : 0.0f;
 			zs.rs[1] = (Mathf.Abs(state.ThumbSticks.Right.Y) > deadZones.RightStick.Y) ? state.ThumbSticks.Right.Y : 0.0f;
-			
-			zs.trigger[0] = (Mathf.Abs(state.Triggers.Left) > deadZones.Triggers.Left) ? state.Triggers.Left : 0.0f;
-			zs.trigger[0] = (Mathf.Abs(state.Triggers.Right) > deadZones.Triggers.Right) ? state.Triggers.Right : 0.0f;
 			
 			return zs;
 		}
@@ -519,11 +520,6 @@ namespace UltraOn.ZeroInput{
 					
 				case Compartment.RightStick:
 					axisValue = zState.rs[commandState.axis.key];
-					return commandState.positive ? (axisValue > commandState.axis.deadZone) : (axisValue < -commandState.axis.deadZone);
-					break;
-					
-				case Compartment.Triggers:
-					axisValue = zState.trigger[commandState.axis.key];
 					return commandState.positive ? (axisValue > commandState.axis.deadZone) : (axisValue < -commandState.axis.deadZone);
 					break;
 				}
@@ -551,6 +547,10 @@ namespace UltraOn.ZeroInput{
 					
 				case Compartment.Click:
 					return zState.click[commandState.btn.key];
+					break;
+					
+				case Compartment.Triggers:
+					return zState.trigger[commandState.btn.key];
 					break;
 				}
 				
