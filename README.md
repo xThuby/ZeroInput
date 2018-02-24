@@ -12,13 +12,15 @@ A enhanced XInput wrapper for Unity3D
 using UltraOn.ZeroInput
 ```
 
-###### Make a Enum (It can be called anything, but I think Command is best.)
+###### Make a class, and fill it with public const int variables named after your desired commands (It can be called anything, but I think Command is best.)
 ```cs
-public enum Command{
-	MoveX,
-	MoveY,
-	Jump,
-	Reset,
+public class Command{
+	public const int MoveX = 0;
+	public const int MoveY = 1;
+	public const int Jump = 2;
+	public const int Reset = 3;
+
+	public const int Remap = 4;
 }
 ```
 
@@ -35,16 +37,19 @@ zInput = new ZeroInput(); //Don't forget to initalize your zInput object.
 ###### Setup your commands in the Start() function of your MonoBehaviour.
 ```cs
 //Make it so we have to press "A" When we want our player to jump.
-zInput.AddButton((int) Command.Jump, ZeroInput.Buttons.Face.A);
+zInput.AddButton(Command.Jump, ZeroInput.Buttons.Face.A);
 		
-//Make it so when we want to reset our player we press our right stick up.
-zInput.AddAxis((int) Command.Reset, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button,  ZeroInput.ActivateOn.Positive);
+//Make it so we have to press "Right Trigger" When we want our player to reset.
+zInput.AddButton(Command.Reset, ZeroInput.Buttons.Trigger.Right);
+		
+//Make it so the next input we press will become our "Jump" button when we move the "Right Stick" up..
+zInput.AddAxis(Command.Remap, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button, ZeroInput.ActivateOn.Positive);
 		
 //Make it so when we want to move our player on the X axis we move our left stick left or right.
-zInput.AddAxis((int) Command.MoveX, ZeroInput.Sticks.LeftStick.X, 0.5f, ZeroInput.ActAs.Axis);
+zInput.AddAxis(Command.MoveX, ZeroInput.Sticks.LeftStick.X, 0.5f, ZeroInput.ActAs.Axis);
 		
 //Make it so when we want to move our player on the Z axis we move our left stick up or down.
-zInput.AddAxis((int) Command.MoveY, ZeroInput.Sticks.LeftStick.Y, 0.5f, ZeroInput.ActAs.Axis);
+zInput.AddAxis(Command.MoveY, ZeroInput.Sticks.LeftStick.Y, 0.5f, ZeroInput.ActAs.Axis);
 ```
 
 ###### Tell ZeroInput you are done setting it up in the Start() function of your MonoBehaviour.
@@ -59,29 +64,25 @@ zInput.UpdateInput(); //This has to be called before any input grabbing calls on
 ##### Getting Input
 ###### How to get the value of a requested axis.
 ```cs
-float x = zInput.Find((int) Command.MoveX).axis.value;
+float x = zInput.Find(Command.MoveX).axis.value;
 ```
 ###### How to check if a button is pressed.
 ```cs
-bool jump = zInput.Find((int) Command.Jump).pressed;
+bool jump = zInput.Find(Command.Jump).pressed;
 ```
 
 ##### Getting Input Properly
 ###### How to get the value of a stick as a Vector3.
 ```cs
-Vector3 move = new Vector3(zInput.Find((int) Command.MoveX).axis.value,0, zInput.Find((int) Command.MoveY).axis.value);
+Vector3 move = new Vector3(zInput.Find(Command.MoveX).axis.value,0, zInput.Find(Command.MoveY).axis.value);
 ```
 
 ###### Check if a button was pressed this frame.
 ```cs
-if(zInput.Find((int) Command.Jump).justPressed)
+if(zInput.Find(Command.Jump).justPressed)
 ```
 #### Todo on ZeroInput
-
-1)Need to figure out if Triggers ar being read correctly as buttons, or if they're axis in XInput.
-
-
-2)If they're buttons: Modify ZeroInput accordingly.
+1) Think of things to do.
 
 #### Todo on Git
 1)Add better docs.
