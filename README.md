@@ -85,4 +85,4 @@ if(zInput.Find(Command.Jump).justPressed)
 1) Think of things to do.
 
 #### Todo on Git
-1)Add better docs.
+1) Add better docs.
