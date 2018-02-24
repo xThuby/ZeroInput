@@ -1,6 +1,6 @@
 //This code was created by William Starkovich
 //This code uses the MIT License.
-//This code is version 0.95
+//This code is version 0.98
 
 using System;
 using System.Collections;
@@ -46,6 +46,7 @@ namespace UltraOn.ZeroInput{
 			
 			public string key;	
 			public string settingsKey;
+			public string inputKey;
 			
 			public int command;
 			public bool isAxis;
@@ -196,8 +197,8 @@ namespace UltraOn.ZeroInput{
 			}
 			
 			public struct Bumper{
-				public static XState LeftBumper = new XState(Compartment.Bumper, 0);
-				public static XState RightBumper = new XState(Compartment.Bumper, 1);
+				public static XState Left = new XState(Compartment.Bumper, 0);
+				public static XState Right = new XState(Compartment.Bumper, 1);
 			}
 			
 			public struct DPad{
@@ -214,14 +215,44 @@ namespace UltraOn.ZeroInput{
 			}
 			
 			public struct Click{
-				public static XState LeftClick = new XState(Compartment.Click, 0);
-				public static XState RightClick = new XState(Compartment.Click, 1);
+				public static XState Left = new XState(Compartment.Click, 0);
+				public static XState Right = new XState(Compartment.Click, 1);
 			}
 			
 						
 			public static class Trigger{
 				public static XState Left = new XState(Compartment.Triggers, 0);
 				public static XState Right =  new XState(Compartment.Triggers, 1);
+			}
+			
+			public static List<XState> GetAll(){
+				List<XState> xStates = new List<XState>();
+				
+				xStates.Add(Buttons.Face.A);
+				xStates.Add(Buttons.Face.B);
+				xStates.Add(Buttons.Face.X);
+				xStates.Add(Buttons.Face.Y);
+				
+				xStates.Add(Buttons.Bumper.Left);
+				xStates.Add(Buttons.Bumper.Right);
+				
+				xStates.Add(Buttons.DPad.Up);
+				xStates.Add(Buttons.DPad.Down);
+				
+				xStates.Add(Buttons.DPad.Left);
+				xStates.Add(Buttons.DPad.Right);
+				
+				xStates.Add(Buttons.Center.Back);
+				xStates.Add(Buttons.Center.Start);
+				xStates.Add(Buttons.Center.Guide);
+				
+				xStates.Add(Buttons.Click.Left);
+				xStates.Add(Buttons.Click.Right);
+				
+				xStates.Add(Buttons.Trigger.Left);
+				xStates.Add(Buttons.Trigger.Right);
+				
+				return xStates;
 			}
 		}
 		
@@ -234,6 +265,18 @@ namespace UltraOn.ZeroInput{
 			public static class RightStick{
 				public static XAxisState X = new XAxisState(Compartment.RightStick, 0, ZeroInput.recommendedDeadZone);
 				public static XAxisState Y = new XAxisState(Compartment.RightStick, 1, ZeroInput.recommendedDeadZone);
+			}
+			
+			public static List<XAxisState> GetAll(){
+				List<XAxisState> xAxis = new  List<XAxisState>();
+				
+				xAxis.Add(LeftStick.X);
+				xAxis.Add(LeftStick.Y);
+				
+				xAxis.Add(RightStick.X);
+				xAxis.Add(RightStick.Y);
+				
+				return xAxis;
 			}
 		}
 		
@@ -250,7 +293,8 @@ namespace UltraOn.ZeroInput{
 		//--------------------
 		public static float recommendedDeadZone = 0.5f; //I'll add deadzones per stick, and user setable ones later.
 		public bool zReady = false;
-		
+		public int pollingFor = -1;
+		public int ignoreWhenPolling = -1;
 		//--------------------
 		// Private Structs
 		//--------------------
@@ -273,7 +317,8 @@ namespace UltraOn.ZeroInput{
 		private GamePadState prevState;
 		private List<int> errorCommandMessages; //once a error message about the command not being there has been printed add that command to this list. If it's on the list don't print it again.
 		private ZeroAxisDeadZones deadZones;
-		
+		private ZeroState zState;
+		private ZeroState prevZState;
 		//--------------------
 		//private primitives
 		//--------------------
@@ -293,7 +338,7 @@ namespace UltraOn.ZeroInput{
 		//--------------------
 		// UpdateInput needs to be called once per frame, or the whole thing kinda doesn't work...
 		public void UpdateInput () {
-			if(zReady){
+			if(zReady || pollingFor >= 0){
 				if (!playerIndexSet || !prevState.IsConnected)
 				{
 					for (int i = 0; i < 4; ++i)
@@ -312,10 +357,61 @@ namespace UltraOn.ZeroInput{
 				prevState = state;
 				state = GamePad.GetState(playerIndex);
 				
-				ZeroState zState = ConvertXState(state);
+				zState = ConvertXState(state);
 				
-				foreach(CommandState state in commandStates){
-					SetCommand(state.command, state.settingsKey, CheckState(zState, state));	
+				if(pollingFor >= 0){
+					CommandState stateToMod = new CommandState();
+					foreach(CommandState cState in commandStates){
+						if(pollingFor == cState.command) stateToMod = cState;
+					}
+					
+					bool digital = false;
+					bool positiveActivation = true;
+					
+					if(CommandStateConnectedToX(stateToMod)){
+						digital = stateToMod.digital;
+						positiveActivation = stateToMod.positive;
+					}
+					
+					
+					CommandState ignore = new CommandState();
+					foreach(CommandState found in commandStates){
+						if(found.command == ignoreWhenPolling) ignore = found;
+					}
+					
+					CommandState myState =  CreateCommandState(digital, positiveActivation);
+					
+					if(CommandStateConnectedToX(myState)){
+						if(myState.inputKey != ignore.inputKey){
+							Debug.LogError("New Input not same as Ignore!" + myState.inputKey + " != " +ignore.inputKey);
+							
+							bool sameTypeCheckPass = true;
+							if(CommandStateConnectedToX(stateToMod)){
+								if(myState.digital != stateToMod.digital) sameTypeCheckPass = false;
+								
+								if(sameTypeCheckPass){
+									commandStates.Remove(stateToMod);
+								}
+							}
+							
+							if(sameTypeCheckPass){
+								commandStates.Add(myState);
+
+								zState = CreateEmptyZeroState();
+								FinishSetup();
+								
+								pollingFor = -1;
+								Debug.LogError("Input Remapped!");	
+							}
+							else Debug.LogError("Attempted to remap 2 inputs that did not have an equal digital value. (One was a Button, and the Other was an Axis).");
+						}
+					}
+				}
+
+				if(zReady){
+					foreach(CommandState cState in commandStates){
+						SetCommand(cState.command, cState.settingsKey, CheckState(cState));	
+					}
 				}
 			}
 		}
@@ -367,6 +463,7 @@ namespace UltraOn.ZeroInput{
 				
 				cState.command = command;
 				cState.settingsKey = "011";
+				cState.inputKey = btn.area.ToString() + btn.key.ToString();
 				cState.key =  command.ToString() + cState.settingsKey;
 				cState.isAxis = false;
 				cState.digital = true;
@@ -395,6 +492,7 @@ namespace UltraOn.ZeroInput{
 				
 				cState.command = command;
 				cState.settingsKey =  "1" + (beButton ? "1" : "0") + (pushPositive ? "1" : "0");
+				cState.inputKey = axis.area.ToString() + axis.key.ToString();
 				cState.key = command.ToString() + cState.settingsKey;
 				
 				cState.isAxis = true;
@@ -413,6 +511,20 @@ namespace UltraOn.ZeroInput{
 			return AddAxis(command, axis, deadZone, act, ActivateOn.Positive);
 		}
 		
+		//If you want a quick bool.
+		public bool isPolling(){
+			return (pollingFor >= 0);
+		}
+		
+		//Give this function the command you want to make the next pressed button/axis give on activation, and the command of the a button you want to ignore - (hint: ignore the remap button)!
+		public void Remap(int toRemap, int toIgnore = -1){
+			zReady = false;
+			zCommand = new Dictionary<int, Dictionary<string,ZCommand> >();
+			
+			ignoreWhenPolling = toIgnore;
+			pollingFor = toRemap;
+		}
+
 		//Once you're done adding all the commands you want you need to call this.
 		public void FinishSetup(){
 			zCommand = new Dictionary<int, Dictionary<string,ZCommand> >();
@@ -483,6 +595,7 @@ namespace UltraOn.ZeroInput{
 			
 			zs.bumper[0]  = (state.Buttons.LeftShoulder == ButtonState.Pressed);
 			zs.bumper[1]  = (state.Buttons.RightShoulder == ButtonState.Pressed);
+			
 			zs.click[0]  = (state.Buttons.LeftStick == ButtonState.Pressed);
 			zs.click[1]  = (state.Buttons.RightStick == ButtonState.Pressed);
 			
@@ -507,8 +620,150 @@ namespace UltraOn.ZeroInput{
 			return zs;
 		}
 		
+		//I admit, I was a little lazy with this. I'll swing by and add some for loops later.
+		private ZeroState CreateEmptyZeroState(){
+			ZeroState zs = new ZeroState();
+			
+			//always there
+			zs.face = new bool[4];
+			zs.bumper = new bool[2];
+			zs.dpad = new bool[4];
+			zs.center = new bool[3];
+			zs.click = new bool[2];
+			zs.trigger = new bool[2];
+			
+			//axis
+			zs.ls = new float[2];
+			zs.rs = new float[2];
+			
+			//There IS a better way..
+			zs.face[0]  = false;
+			zs.face[1]  = false;
+			zs.face[2]  = false;
+			zs.face[3]  = false;
+			
+			zs.bumper[0]  = false;
+			zs.bumper[1]  = false;
+			
+			zs.click[0]  = false;
+			zs.click[1]  = false;
+			
+			zs.dpad[0]  = false;
+			zs.dpad[1]  = false;
+			zs.dpad[2]  = false;
+			zs.dpad[3]  = false;
+			
+			zs.center[0]  = false;
+			zs.center[1]  = false;
+			zs.center[2]  = false;
+			
+			zs.trigger[0] = false;
+			zs.trigger[1] = false;
+			
+			zs.ls[0] = 0.0f;
+			zs.ls[1] = 0.0f;
+			
+			zs.rs[0] = 0.0f;
+			zs.rs[1] = 0.0f;
+			
+			return zs;
+		}
+		
+		//Create a new button on the fly. Used for remapping.
+		private XState CreateNewXState(){
+			for(int i =0; i < 4; i++){
+				if(zState.face[i]) return new XState(Compartment.Face, i);
+			}
+			
+			for(int i =0; i < 2; i++){
+				if(zState.bumper[i]) return new XState(Compartment.Bumper, i);
+			}
+			
+			for(int i =0; i < 2; i++){
+				if(zState.click[i]) return new XState(Compartment.Click, i);
+			}
+			
+			for(int i =0; i < 4; i++){
+				if(zState.dpad[i]) return new XState(Compartment.Dpad, i);
+			}
+			
+			for(int i =0; i < 3; i++){
+				if(zState.center[i]) return new XState(Compartment.Center, i);
+			}
+			
+			for(int i =0; i < 2; i++){
+				if(zState.trigger[i]) return new XState(Compartment.Triggers, i);
+			}
+			
+			//Debug.LogError("No buttons pressed!");
+			return null;
+		}
+		
+		//Create a new axis on the fly. Used for remapping.
+		private XAxisState CreateNewXAxisState(){
+			for(int i =0; i < 2; i++){
+				if(zState.ls[i] > 0) return new XAxisState(Compartment.LeftStick, i, recommendedDeadZone);
+			}
+			
+			for(int i =0; i < 2; i++){
+				if(zState.rs[i] > 0) return new XAxisState(Compartment.RightStick, i, recommendedDeadZone);
+			}
+			
+			return null;
+		}
+		
+		//Create a command state on the fly. Used for remapping.
+		private CommandState CreateCommandState(bool beButton = false, bool pushPositive = true, bool print = false){
+			CommandState cState = new CommandState();
+			bool isAxis = false;
+			string inputStr = "";
+			
+			XState foundBtn = CreateNewXState();
+			XAxisState foundAxis = null;
+
+			isAxis = (foundBtn == null);
+
+			if(isAxis){
+				foundAxis = CreateNewXAxisState();
+				if(foundAxis != null) inputStr = foundAxis.area.ToString() + foundAxis.key.ToString();
+			}
+			else{
+				inputStr = foundBtn.area.ToString() + foundBtn.key.ToString();
+			}
+
+			cState.btn = foundBtn;
+			cState.axis = foundAxis;
+				
+			cState.command = pollingFor;
+			cState.settingsKey =  (isAxis ? "1" : "0") + ((beButton || (!isAxis)) ? "1" : "0") + ((pushPositive || (!isAxis)) ? "1" : "0");
+			cState.inputKey = inputStr;
+			cState.key = cState.command.ToString() + cState.settingsKey;
+				
+			cState.isAxis = isAxis;
+			cState.digital = beButton;
+			cState.positive = pushPositive;
+				
+			if(CommandStateConnectedToX(cState)){
+				if(print) Debug.LogError("Creating " + cState.command + " to " + ((!isAxis) ? "button " + cState.btn : "axis " + cState.axis) + " | " + cState.key);
+				return cState;
+			}
+			
+			return new CommandState();
+		}
+
+		//Checks to see if a CommandState has a way to be reached.
+		private bool CommandStateConnectedToX(CommandState cState, bool print = false){
+			if(print){
+				Debug.LogError(cState.btn);
+				Debug.LogError(cState.axis);
+			}
+			if(cState.btn != null) return true;
+			if(cState.axis != null) return true;
+			return false;
+		}
+
 		//Checks what is going on in the given ZeroState.
-		private bool CheckInput(ZeroState zState, CommandState commandState, out float axisValue){
+		private bool CheckInput(CommandState commandState, out float axisValue){
 			axisValue = 0.0f;
 			
 			if(commandState.isAxis){
@@ -562,14 +817,14 @@ namespace UltraOn.ZeroInput{
 		}
 		
 		//The First of a 1, 2 punch of functions designed to tell you all you need to know about your ZCommands.
-		private ZCommand CheckState(ZeroState zState, CommandState commandState){
+		private ZCommand CheckState(CommandState commandState){
 			ZCommand temp = new ZCommand();
 			temp.button = commandState.digital;
 			
 			float dummyOut = 0.0f;
 			
 			if(commandState.isAxis && !commandState.digital){
-				temp.outOfDeadZone = CheckInput(zState, commandState, out temp.value); //also sets value from that "out."
+				temp.outOfDeadZone = CheckInput(commandState, out temp.value); //also sets value from that "out."
 				
 				if(temp.outOfDeadZone){
 					temp.timeOutOfDeadZone = Time.deltaTime;
@@ -583,7 +838,7 @@ namespace UltraOn.ZeroInput{
 			}
 			
 			else if(!commandState.isAxis || commandState.digital){
-				if(CheckInput(zState, commandState, out dummyOut)){
+				if(CheckInput(commandState, out dummyOut)){
 					temp.pressed = true;
 					temp.held = Time.deltaTime;
 				}
