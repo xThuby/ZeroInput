@@ -7,17 +7,20 @@ public class ExamplePlayer : MonoBehaviour {
 
 	//public objects
 	//What all do we want this player doing?
-	public enum Command{
-		MoveX,
-		MoveY,
-		Jump,
-		Reset,
+	public class Command{
+		public const int MoveX = 0;
+		public const int MoveY = 1;
+		public const int Jump = 2;
+		public const int Reset = 3;
+		
+		public const int Remap = 4;
 	}
 
 	//protected objects
 	ZeroInput zInput; //Our ZeroInput object.
 	public Vector3 move;
 	public Vector3 startPosition;
+	
 	//private primitives
 	private float speed= 0.1f;
 	private float groundLevel = 0.0f;
@@ -33,19 +36,19 @@ public class ExamplePlayer : MonoBehaviour {
 		zInput = new ZeroInput(); //Don't forget to initalize your zInput object.
 		
 		//Make it so we have to press "A" When we want our player to jump.
-		zInput.AddButton((int) Command.Jump, ZeroInput.Buttons.Face.A);
+		zInput.AddButton(Command.Jump, ZeroInput.Buttons.Face.A);
 		
 		//Make it so we have to press "Right Trigger" When we want our player to reset.
-		zInput.AddButton((int) Command.Reset, ZeroInput.Buttons.Trigger.Right);
+		zInput.AddButton(Command.Reset, ZeroInput.Buttons.Trigger.Right);
 		
-		//Make it so when we want to reset our player we press our right stick up.
-		zInput.AddAxis((int) Command.Reset, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button, ZeroInput.ActivateOn.Positive);
+		//Make it so the next input we press will become our "Jump" button when we move the "Right Stick" up..
+		zInput.AddAxis(Command.Remap, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button, ZeroInput.ActivateOn.Positive);
 		
 		//Make it so when we want to move our player on the X axis we move our left stick left or right.
-		zInput.AddAxis((int) Command.MoveX, ZeroInput.Sticks.LeftStick.X, 0.5f, ZeroInput.ActAs.Axis);
+		zInput.AddAxis(Command.MoveX, ZeroInput.Sticks.LeftStick.X, 0.5f, ZeroInput.ActAs.Axis);
 		
 		//Make it so when we want to move our player on the Z axis we move our left stick up or down.
-		zInput.AddAxis((int) Command.MoveY, ZeroInput.Sticks.LeftStick.Y, 0.5f, ZeroInput.ActAs.Axis);
+		zInput.AddAxis(Command.MoveY, ZeroInput.Sticks.LeftStick.Y, 0.5f, ZeroInput.ActAs.Axis);
 		
 		zInput.FinishSetup(); //When you're done setting your controller up be sure to call this or you won't get any input.
 	}
@@ -55,7 +58,7 @@ public class ExamplePlayer : MonoBehaviour {
 		zInput.UpdateInput(); //This has to be called every frame.
 		
 		//This is how we would use an Axis.
-		move = new Vector3(zInput.Find((int) Command.MoveX).axis.value,0, zInput.Find((int) Command.MoveY).axis.value);
+		move = new Vector3(zInput.Find(Command.MoveX).axis.value,0, zInput.Find(Command.MoveY).axis.value);
 		
 		//To move the Object.
 		if(move != Vector3.zero){
@@ -63,19 +66,24 @@ public class ExamplePlayer : MonoBehaviour {
 		}
 		
 		//This is how to use an axis as a button	
-		if(zInput.Find((int) Command.Reset).justPressed){
+		if(zInput.Find(Command.Reset).justPressed){
 			transform.position = startPosition;
 			onGround = true;
 		}
 		
 		//This is how to use a button.
-		if(zInput.Find((int) Command.Jump).justPressed){
+		if(zInput.Find(Command.Jump).justPressed){
 			if(onGround){
 				jumpTime= 0.25f;
 				onGround = false;
 			}
 		}
 		
+		//This is how to use our new Remap function!
+		if(zInput.Find(Command.Remap).justPressed){
+			zInput.Remap(Command.Jump, Command.Remap);
+		}
+
 		if(jumpTime > 0.0f){
 			transform.position += Vector3.up * (speed * 3.0f);
 			jumpTime -= Time.deltaTime;
