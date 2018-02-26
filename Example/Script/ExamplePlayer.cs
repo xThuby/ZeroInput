@@ -14,6 +14,9 @@ public class ExamplePlayer : MonoBehaviour {
 		public const int Reset = 3;
 		
 		public const int Remap = 4;
+		
+		public const int SaveConfig = 5;
+		public const int LoadConfig = 6;
 	}
 
 	//protected objects
@@ -38,11 +41,17 @@ public class ExamplePlayer : MonoBehaviour {
 		//Make it so we have to press "A" When we want our player to jump.
 		zInput.AddButton(Command.Jump, ZeroInput.Buttons.Face.A);
 		
+		//Make it so we have to press "Left Trigger" When we want to save our config.
+		zInput.AddButton(Command.SaveConfig, ZeroInput.Buttons.Trigger.Left);
+		
 		//Make it so we have to press "Right Trigger" When we want our player to reset.
 		zInput.AddButton(Command.Reset, ZeroInput.Buttons.Trigger.Right);
 		
 		//Make it so the next input we press will become our "Jump" button when we move the "Right Stick" up..
 		zInput.AddAxis(Command.Remap, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button, ZeroInput.ActivateOn.Positive);
+		
+		//Make it so we load our last saved config when we move the "Right Stick" down..
+		zInput.AddAxis(Command.LoadConfig, ZeroInput.Sticks.RightStick.Y, 0.5f, ZeroInput.ActAs.Button, ZeroInput.ActivateOn.Negative);
 		
 		//Make it so when we want to move our player on the X axis we move our left stick left or right.
 		zInput.AddAxis(Command.MoveX, ZeroInput.Sticks.LeftStick.X, 0.5f, ZeroInput.ActAs.Axis);
@@ -58,7 +67,7 @@ public class ExamplePlayer : MonoBehaviour {
 		zInput.UpdateInput(); //This has to be called every frame.
 		
 		//This is how we would use an Axis.
-		move = new Vector3(zInput.Find(Command.MoveX).axis.value,0, zInput.Find(Command.MoveY).axis.value);
+		move = zInput.GetStickInfoAsVector3(Command.MoveX, Command.MoveY);
 		
 		//To move the Object.
 		if(move != Vector3.zero){
@@ -82,6 +91,18 @@ public class ExamplePlayer : MonoBehaviour {
 		//This is how to use our new Remap function!
 		if(zInput.Find(Command.Remap).justPressed){
 			zInput.Remap(Command.Jump, Command.Remap);
+		}
+		
+		//This is how to use our new SaveConfig function!
+		if(zInput.Find(Command.SaveConfig).justPressed){
+			zInput.SaveConfigInPrefs("mySave");
+		}
+		
+		//This is how to use our new LoadConfig function!
+		if(zInput.Find(Command.LoadConfig).justPressed){
+			if(!ZeroInput.SetupFromConfig("mySave", out zInput)){
+				Debug.LogError("Something wen't wrong loading the ZeroInput config saved under " + "mySave");
+			}
 		}
 
 		if(jumpTime > 0.0f){
