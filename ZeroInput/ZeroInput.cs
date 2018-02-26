@@ -40,6 +40,11 @@ namespace UltraOn.ZeroInput{
 		//------------------
 		//Public Structs
 		//-----------------
+		public struct Config{
+			public string name;
+			public string info;
+		}
+		
 		public struct CommandState{
 			public XState btn;
 			public XAxisState axis;
@@ -416,6 +421,85 @@ namespace UltraOn.ZeroInput{
 			}
 		}
 		
+		public static bool SetupFromConfig(string name, out ZeroInput zInput){
+			zInput = new ZeroInput();
+			
+			Config conf =zInput.LoadConfig(name);
+			
+			if(PlayerPrefs.HasKey(conf.name)){
+				string[] myInfo = conf.info.Split('|');
+				string foundName = myInfo[0];
+				int numCommands = int.Parse(myInfo[1]);
+				string commandInfo = myInfo[2];
+				
+				if(foundName.Equals(conf.name)){
+					string[] commandList =  myInfo[2].Split('$');
+					for(int i = 0; i < numCommands; i++){
+						string[] info = commandList[i].Split('!');
+						bool isAxis= bool.Parse(info[0]);
+						int command =  int.Parse(info[1]);
+						if(isAxis){
+							Compartment myArea = (Compartment) Enum.Parse(typeof(Compartment), info[2]);
+							float deadZone = float.Parse(info[3]);
+							int key = int.Parse(info[4]);
+							ActAs digital =  bool.Parse(info[5]) ? ActAs.Button : ActAs.Axis;
+							ActivateOn positive = bool.Parse(info[6]) ? ActivateOn.Positive : ActivateOn.Negative;
+							
+							zInput.AddAxis(command, myArea, key, deadZone, digital, positive);
+						}
+						
+						else{
+							Compartment myArea = (Compartment) Enum.Parse(typeof(Compartment), info[2]);
+							int key = int.Parse(info[3]);
+							
+							zInput.AddButton(command, myArea, key);
+						}
+					}
+					
+					zInput.FinishSetup();
+					
+					return true;
+				}
+				
+				else return false;
+			}
+			
+			else return false;
+		}
+		
+		public Vector3 GetStickInfoAsVector3(int commandX, int commandY){
+			return new Vector3(Find(commandX).axis.value,0, Find(commandY).axis.value);
+		}
+		
+		public Vector2 GetStickInfoAsVector2(int commandX, int commandY){
+			return new Vector2(Find(commandX).axis.value,Find(commandY).axis.value);
+		}
+		
+		public Vector3 GetButtonInfoAsVector3(int upCommand, int leftCommand, int downCommand, int rightCommand, bool alwaysDigital = false){
+			return new Vector3(GetButtonsAsAxis(leftCommand, rightCommand, alwaysDigital),0,GetButtonsAsAxis(upCommand, downCommand, alwaysDigital));
+		}
+		
+		public Vector2 GetButtonInfoAsVector2(int upCommand, int leftCommand, int downCommand, int rightCommand, bool alwaysDigital = false){
+			return new Vector2(GetButtonsAsAxis(leftCommand, rightCommand, alwaysDigital),GetButtonsAsAxis(upCommand, downCommand, alwaysDigital));
+		}
+		
+		public float GetButtonsAsAxis(int leftCommand, int rightCommand, bool alwaysDigital = false){
+			if(alwaysDigital){
+				return Find(rightCommand).pressed ?  1.0f : Find(leftCommand).pressed ? -1.0f : 0.0f;
+			}
+			
+			else{
+				ZCommandList left = Find(leftCommand);
+				ZCommandList right = Find(rightCommand);
+				float leftVal = left.pressed ?  1.0f : (Mathf.Abs(left.axis.value) > 0.0f) ? Mathf.Abs(left.axis.value) : 0.0f;
+				float rightVal = right.pressed ?  1.0f : (Mathf.Abs(right.axis.value) > 0.0f) ? Mathf.Abs(right.axis.value) : 0.0f;
+				
+				bool goRight = (Mathf.Abs(leftVal) > Mathf.Abs(rightVal)) ? false : true;
+				
+				return goRight ?  Mathf.Abs(rightVal) : -Mathf.Abs(leftVal);
+			}
+		}
+		
 		//This will be the function mainly used in other classes.
 		public ZCommandList Find(int command){
 			ZCommandList result = new ZCommandList();
@@ -476,6 +560,11 @@ namespace UltraOn.ZeroInput{
 			return !exists;
 		}
 		
+		//Quick helper function.
+		public bool AddButton(int command, Compartment area, int key){
+			return AddButton(command, new XState(area, key));
+		}
+		
 		//Here we set what command finds our desired axis. We can also make the axis pretend to be a button, and if said button activates when the axis is above or below 0.0 and out of the dead zone.
 		//Returns true if the button was added, and false if it already exists.
 		//Note: Button or Axis depends on the controller, and not the end result.
@@ -504,6 +593,10 @@ namespace UltraOn.ZeroInput{
 			}
 			
 			return exists;
+		}
+		
+		public bool AddAxis(int command, Compartment area, int key, float deadZone, ActAs act, ActivateOn action){
+			return AddAxis(command, new XAxisState(area, key, deadZone), deadZone, act, action);
 		}
 		
 		//Just a quick fix to the fact that you probably won't need the ActivateOn field if you want an axis.
@@ -711,7 +804,7 @@ namespace UltraOn.ZeroInput{
 			
 			return null;
 		}
-		
+
 		//Create a command state on the fly. Used for remapping.
 		private CommandState CreateCommandState(bool beButton = false, bool pushPositive = true, bool print = false){
 			CommandState cState = new CommandState();
@@ -945,6 +1038,55 @@ namespace UltraOn.ZeroInput{
 			else{
 				Debug.LogError("zCommand[" + state.command + "] aready contains a key for " + state.settingsKey);
 			}
+		}
+
+		public string GetCommandStateInfo(CommandState s, string delimiter){
+			string result= "";
+			
+			result += s.isAxis.ToString() + delimiter;
+			result += s.command.ToString() + delimiter;
+			if(s.isAxis){
+				result += s.axis.area.ToString() + delimiter;
+				result += s.axis.deadZone.ToString() + delimiter;
+				result += s.axis.key.ToString() +  delimiter;
+				result += s.digital.ToString() +  delimiter;
+				result += s.positive.ToString() +  delimiter;
+			}
+			
+			else{
+				result += s.btn.area.ToString() + delimiter;
+				result += s.btn.key.ToString() +  delimiter;
+			}
+			
+			return result;
+		}
+
+		public Config SaveConfig(string name){
+			Config conf = new Config();
+			conf.name = name;
+			conf.info = name + "|" + commandStates.Count + "|";
+			
+			foreach(CommandState cState in commandStates){
+				conf.info += GetCommandStateInfo(cState, "!") + "$";
+			}
+			
+			return conf;
+			
+		}
+		
+		public Config LoadConfig(string name){
+			Config result = new Config();
+			if(PlayerPrefs.HasKey(name)){
+				result.name = name;
+				result.info = PlayerPrefs.GetString(name);
+			}
+			
+			return result;
+		}
+		
+		public void SaveConfigInPrefs(string name){
+			Config myConfig = SaveConfig(name);
+			PlayerPrefs.SetString(myConfig.name, myConfig.info);
 		}
 	}
 }
