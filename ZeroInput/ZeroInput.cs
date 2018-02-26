@@ -1,6 +1,6 @@
 //This code was created by William Starkovich
 //This code uses the MIT License.
-//This code is version 0.98
+//This code is version 0.99
 
 using System;
 using System.Collections;
