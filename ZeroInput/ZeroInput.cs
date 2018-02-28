@@ -1,6 +1,6 @@
 //This code was created by William Starkovich
 //This code uses the MIT License.
-//This code is version 0.99
+//This code is version 0.995
 
 using System;
 using System.Collections;
@@ -793,13 +793,21 @@ namespace UltraOn.ZeroInput{
 		}
 		
 		//Create a new axis on the fly. Used for remapping.
-		private XAxisState CreateNewXAxisState(){
+		private XAxisState CreateNewXAxisState(out float axisValue){
+			axisValue = 0.0f;
+			
 			for(int i =0; i < 2; i++){
-				if(zState.ls[i] > 0) return new XAxisState(Compartment.LeftStick, i, recommendedDeadZone);
+				if(zState.ls[i] != 0.0f){
+					axisValue = zState.ls[i];
+					return new XAxisState(Compartment.LeftStick, i, recommendedDeadZone);
+				}
 			}
 			
 			for(int i =0; i < 2; i++){
-				if(zState.rs[i] > 0) return new XAxisState(Compartment.RightStick, i, recommendedDeadZone);
+				if(zState.rs[i] != 0.0f){
+					axisValue = zState.ls[i];
+					return new XAxisState(Compartment.RightStick, i, recommendedDeadZone);
+				}
 			}
 			
 			return null;
@@ -816,9 +824,15 @@ namespace UltraOn.ZeroInput{
 
 			isAxis = (foundBtn == null);
 
+			bool bePositive = pushPositive;
+
 			if(isAxis){
-				foundAxis = CreateNewXAxisState();
-				if(foundAxis != null) inputStr = foundAxis.area.ToString() + foundAxis.key.ToString();
+				float axisValue = 0.0f;
+				foundAxis = CreateNewXAxisState(out axisValue);
+				if(foundAxis != null){
+					bePositive = (axisValue > 0.0f);
+					inputStr = foundAxis.area.ToString() + foundAxis.key.ToString();
+				}
 			}
 			else{
 				inputStr = foundBtn.area.ToString() + foundBtn.key.ToString();
@@ -833,15 +847,33 @@ namespace UltraOn.ZeroInput{
 			cState.key = cState.command.ToString() + cState.settingsKey;
 				
 			cState.isAxis = isAxis;
-			cState.digital = beButton;
-			cState.positive = pushPositive;
+			
+			bool wasButton = beButton;
+			if(CommandStateExists(cState.command, out wasButton))
+			
+			cState.digital = wasButton;
+			cState.positive = bePositive;
 				
 			if(CommandStateConnectedToX(cState)){
+				Debug.Log(cState.digital + "|| " + cState.positive);
 				if(print) Debug.LogError("Creating " + cState.command + " to " + ((!isAxis) ? "button " + cState.btn : "axis " + cState.axis) + " | " + cState.key);
 				return cState;
 			}
 			
 			return new CommandState();
+		}
+
+		private bool CommandStateExists(int command, out bool isButton){
+			isButton = false;
+			
+			foreach(CommandState cState in commandStates){
+				if(cState.command == command){
+					isButton = cState.digital;
+					return true;
+				}
+			}
+			
+			return false;
 		}
 
 		//Checks to see if a CommandState has a way to be reached.
