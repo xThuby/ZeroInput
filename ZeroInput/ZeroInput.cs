@@ -1,6 +1,6 @@
 //This code was created by William Starkovich
 //This code uses the MIT License.
-//This code is version 0.995
+//This code is version 0.996
 
 using System;
 using System.Collections;
@@ -982,9 +982,11 @@ namespace UltraOn.ZeroInput{
 		//The Second of a 1, 2 punch of functions designed to tell you all you need to know about your ZCommands. Gets called on any button (Inclusing Axis) 
 		private ZCommand UpdateZButtonState(int command, string settings, ZCommand nextState){
 			ZCommand temp = zCommand[command][settings];
+			
+			temp.justPressed = false;
+			
 			if(nextState.pressed){
 				if(temp.held <= 0.0f) temp.justPressed = true;
-				else temp.justPressed = false;
 				temp.held += nextState.held;
 			}
 			
