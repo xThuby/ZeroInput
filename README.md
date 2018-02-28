@@ -128,5 +128,7 @@ if(zInput.Find(Command.LoadConfig).justPressed){
 
 ### To NOT do
 1) Make it so you can poll a positive axis, then a negative axis of that same axis right after.
+___
 *Reason:* You're just going to get the cross value of the axis as the 2nd polled axis.
+___
 *Work around:* Poll for UpP, Right, Down, Left. If you don't need 1 axis poll for it anyway.
